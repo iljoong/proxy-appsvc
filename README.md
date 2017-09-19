@@ -1,6 +1,6 @@
 # Proxy server for Azure App Service
 
-When you're managing 100s microsites on Azure App Service you're facing with management overheads with too many domain names
+When you're managing 100s microsites on Azure App Service you're facing management overheads, such as too many domain names
 
 You can simplify or centralize domain name (+ SSL offload) and route by path with reverse proxy server.
 Following is the architecture for this solution.
@@ -29,6 +29,8 @@ You may want to simplify managing multiple VM instances and enable better monito
 - Install & config OMSAgent and CollectD to send NGINX perf logs to Log Analytics via OMSAgent
 
 You could setup/configure manually but you would better to automate and VM imaging using Packer.
+
+[Packer](https://www.packer.io/) is a great tool for creating or baking VM images. Azure supports Packer and see documentation [https://docs.microsoft.com/en-us/azure/virtual-machines/linux/build-image-with-packer](https://docs.microsoft.com/en-us/azure/virtual-machines/linux/build-image-with-packer)
 
 For how to create packer script, see [Packer script sample](./packer)
 
