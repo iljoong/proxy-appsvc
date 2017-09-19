@@ -1,0 +1,31 @@
+# nginx status
+server {
+	listen 8000 default_server;
+	listen [::]:8000 default_server;
+
+	server_name _;
+
+	location /status {
+		stub_status on;
+		access_log off;
+		allow 127.0.0.1;
+		deny all;
+	}
+}
+
+# default-proxy
+server {
+        listen 80 default_server;
+        listen [::]:80 default_server;
+
+        server_name _;
+
+        # https redirect
+        location / {
+                return 301 https://$host$uri;
+        }
+
+        location /probe {
+                return 200 'updated-2017-09-16\n';
+        }
+}

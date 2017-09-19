@@ -1,0 +1,88 @@
+{
+  "variables": {
+    "azf_account": "<acct_name>",
+    "azf_key": "<acct_key>",
+    "azf_share": "<configshare>",
+    "azf_config": "</config>",
+    "oms_workspaceid": "<workspaceid>",
+    "oms_key": "<workspaceid_key>"
+  },
+  "builders": [{
+    "type": "azure-arm",
+
+    "client_id": "",
+    "client_secret": "",
+    "tenant_id": "",
+    "subscription_id": "",
+
+    "managed_image_resource_group_name": "<resource-group>",
+    "managed_image_name": "<image-name>",
+
+    "os_type": "Linux",
+    "image_publisher": "Canonical",
+    "image_offer": "UbuntuServer",
+    "image_sku": "16.04-LTS",
+
+    "azure_tags": {
+        "dept": "Ops",
+        "task": "Image deployment"
+    },
+
+    "location": "koreasouth",
+    "vm_size": "Standard_D1_v2"
+  }],
+  "provisioners": [{
+    "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E sh '{{ .Path }}'",
+    "inline": [
+      "apt-get update",
+      "apt-get upgrade -y",
+      "apt-get -y install nginx",
+
+      "apt-get -y install cifs-utils",
+      "mkdir {{user `azf_config`}}",
+      "bash -c 'echo \"//{{user `azf_account`}}.file.core.windows.net/{{user `azf_share`}} {{user `azf_config`}} cifs vers=3.0,username={{user `azf_account`}},password={{user `azf_key`}},dir_mode=0777,file_mode=0777,serverino\" >> /etc/fstab'",
+
+      "wget https://raw.githubusercontent.com/Microsoft/OMS-Agent-for-Linux/master/installer/scripts/onboard_agent.sh && sh onboard_agent.sh -w {{user `oms_workspaceid`}} -s {{user `oms_key`}}",
+
+      "apt-get -y install collectd",
+      "cp /etc/opt/microsoft/omsagent/sysconf/omsagent.d/oms.conf /etc/collectd/collectd.conf.d/oms.conf",
+      "cp /etc/opt/microsoft/omsagent/sysconf/omsagent.d/collectd.conf /etc/opt/microsoft/omsagent/{{user `oms_workspaceid`}}/conf/omsagent.d/",
+      "chown omsagent:omiusers /etc/opt/microsoft/omsagent/{{user `oms_workspaceid`}}/conf/omsagent.d/collectd.conf"
+    ],
+    "inline_shebang": "/bin/sh -x",
+    "type": "shell"
+  },
+  {
+      "type": "file",
+      "source": "./nginx.conf",
+      "destination": "/tmp/nginx.conf"
+   },
+   {
+    "type": "file",
+    "source": "./collectd-nginx.conf",
+    "destination": "/tmp/collectd-nginx.conf"
+   },
+   {
+      "type": "file",
+      "source": "./my_domain.crt",
+      "destination": "/tmp/my_domain.crt"
+   },
+   {
+      "type": "file",
+      "source": "./my_domain.key",
+      "destination": "/tmp/my_domain.key"
+   },
+   {
+    "execute_command": "chmod +x {{ .Path }}; {{ .Vars }} sudo -E sh '{{ .Path }}'",
+    "inline": [
+      "cp /tmp/nginx.conf /etc/nginx/nginx.conf",
+      "cp /tmp/collectd-nginx.conf /etc/collectd/collectd.conf.d/nginx.conf",
+      "cp /tmp/my_domain.crt /etc/ssl/certs/my_domain.crt",
+      "cp /tmp/my_domain.key /etc/ssl/certs/my_domain.key",
+
+      "/usr/sbin/waagent -force -deprovision+user && export HISTSIZE=0 && sync"
+    ],
+    "inline_shebang": "/bin/sh -x",
+    "type": "shell"
+   }]
+}
